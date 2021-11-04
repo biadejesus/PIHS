@@ -14,7 +14,7 @@
 	ask_option:				.asciz	"Digite a opcao escolhida: "
 	invalid_option_msg:		.asciz	"Opcao Invalida, tente novamente.\n"
 	invalid_value_msg:		.asciz	"Valor Invalido, tente novamente.\n"
-	repeat_value_msg:		.asciz	"Elemento ja presente no conjunto, tente novamente."
+	repeat_value_msg:		.asciz	"Elemento ja presente no conjunto, tente novamente.\n"
 
 	read_values_msg:		.asciz	"\nLeitura dos Conjuntos\n\n"
 	read_values_menu:		.asciz	"\n\t1. Inserir Conjunto A\n\t2. Inserir Conjunto B\n\t3. Sair\n\n"
@@ -36,6 +36,7 @@
 
 	element:		.int	0
 	flag:			.int	0
+	aux:			.int	0
 	
 	option:		.int	0
 	int_type:	.asciz	"%d"
@@ -330,6 +331,9 @@ _get_values_for_A:
 	movl	$set_A, %edi
 
 	_read_set_A_loop:
+		movl	$0,	flag
+		movl	%ebx,	aux
+		decl	aux
 
 		pushl	%ebx
 		pushl	%ecx
@@ -371,6 +375,9 @@ _get_values_for_B:
 	movl	$set_B, %edi
 
 	_read_set_B_loop:
+		movl	$0,	flag
+		movl	%ebx,	aux
+		decl	aux
 
 		pushl	%ebx
 		pushl	%ecx
@@ -408,8 +415,11 @@ ret
 _check_for_repeat_A:
 
 	movl	$1, %ebx
-	movl	number_of_elements_A, %ecx
+	movl	aux, %ecx
 	movl	$set_A, %edi
+
+	cmpl	$0, %ecx
+	jle	_check_for_repeat_A_end
 
 	_check_for_repeat_A_loop:
 
@@ -432,18 +442,22 @@ _check_for_repeat_A:
 
 	loop	_check_for_repeat_A_loop
 
-	_is_element_A_repeat:
-		movl	$0,	flag
-		call _repeat_value_error
-		jmp	_is_element_A_repeat_ret
-
+_check_for_repeat_A_end:
 ret
+
+_is_element_A_repeat:
+	movl	$0,	flag
+	call _repeat_value_error
+	jmp	_is_element_A_repeat_ret
 
 _check_for_repeat_B:
 
 	movl	$1, %ebx
-	movl	number_of_elements_B, %ecx
+	movl	aux, %ecx
 	movl	$set_B, %edi
+
+	cmpl	$0, %ecx
+	jle	_check_for_repeat_B_end
 
 	_check_for_repeat_B_loop:
 
@@ -466,12 +480,14 @@ _check_for_repeat_B:
 
 	loop	_check_for_repeat_B_loop
 
-	_is_element_B_repeat:
-		movl	$0,	flag
-		call _repeat_value_error
-		jmp	_is_element_B_repeat_ret
 
+_check_for_repeat_B_end:
 ret
+
+_is_element_B_repeat:
+	movl	$0,	flag
+	call _repeat_value_error
+	jmp	_is_element_B_repeat_ret
 
 _repeat_value_error:
 
