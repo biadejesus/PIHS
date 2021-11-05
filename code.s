@@ -31,16 +31,16 @@
 	set_A:		.space	80
 	set_B:		.space	80
 	
-	max_number_of_elements:				.int	20
-	number_of_elements_A:	.int	0
-	number_of_elements_B:	.int	0
+	max_number_of_elements:		.int	20
+	number_of_elements_A:		.int	0
+	number_of_elements_B:		.int	0
 
 	element:		.int	0
 	flag:			.int	0
 	aux:			.int	0
 	
-	option:		.int	0
-	int_type:	.asciz	"%d"
+	option:			.int	0
+	int_type:		.asciz	"%d"
 
 .section .text
 .globl	_start
