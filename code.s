@@ -305,21 +305,24 @@ _end:
 	//	se foi alocado valores nos conjuntos, desalocar
 	movl	$0,	%eax
 	cmpl	number_of_elements_A, %eax
-	// jne		_call_free_A
+	jne		_free_set_A
 		_call_free_A_ret:
 	cmpl	number_of_elements_B, %eax
-	// jne		_call_free_B
+	jne		_free_set_B
 		_call_free_B_ret:
-
 	pushl	$0
 	call	exit
 
-_call_free_A:
-	call _free_set_A
+_free_set_A:
+	pushl	set_A
+	call	free
+	addl	$4, %esp
 	jmp _call_free_A_ret
 	
-_call_free_B:
-	call _free_set_B
+_free_set_B:
+	pushl	set_B
+	call	free
+	addl	$4, %esp
 	jmp _call_free_B_ret
 	
 _empty_set_error:
@@ -552,18 +555,4 @@ _alloc_set:
 	call	malloc
 	addl	$4, %esp
 
-ret
-
-_free_set_A:
-	// desaloca o set_A
-	pushl	set_A
-	call	free
-	addl	$4, %esp
-ret
-
-_free_set_B:
-	// desaloca o set_B
-	pushl	set_B
-	call	free
-	addl	$4, %esp
 ret
