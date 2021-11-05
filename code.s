@@ -9,13 +9,13 @@
 .section .data
 
 	opening_msg:			.asciz	"\nManipulador de Conjuntos Numericos\n"
-	
 	main_menu:				.asciz	"\nMenu de Opcoes:\n\n\t1 - Leitura dos Conjuntos\n\t2 - Encontrar Uniao\n\t3 - Encontrar Intersecao\n\t4 - Encontrar a Diferenca\n\t5 - Encontrar o Complementar\n\t6 - Sair\n\n"
 	ask_option:				.asciz	"Digite a opcao escolhida: "
 	invalid_option_msg:		.asciz	"Opcao Invalida, tente novamente.\n"
 	invalid_value_msg:		.asciz	"Valor Invalido, tente novamente.\n"
 	repeat_value_msg:		.asciz	"Elemento ja presente no conjunto, tente novamente.\n"
 	empty_set_error_msg:	.asciz	"\nUm ou mais conjuntos estao vazios. Preencha-os antes de executar essa opcao\n"
+	enter_to_return_msg:	.asciz	"\nPressione 1 para retornar ao menu principal\n"
 
 	read_values_msg:		.asciz	"\nLeitura dos Conjuntos\n\n"
 	read_values_menu:		.asciz	"\n\t1. Inserir Conjunto A\n\t2. Inserir Conjunto B\n\t3. Sair\n\n"
@@ -42,6 +42,7 @@
 	
 	option:			.int	0
 	int_type:		.asciz	"%d"
+	str_type:		.asciz	"%s"
 
 .section .text
 .globl	_start
@@ -189,9 +190,15 @@ _find_union:
 	call	_is_empty_error
 
 
+	jmp		_main_menu
+
+
 _find_intersection:
 	// Encontrar Intersecao
 	call	_is_empty_error
+
+
+	jmp		_main_menu
 
 
 _find_difference:
@@ -199,9 +206,15 @@ _find_difference:
 	call	_is_empty_error
 
 
+	jmp		_main_menu
+
+
 _find_complement:
 	// Encontrar o Complementar
 	call	_is_empty_error
+
+
+	jmp		_main_menu
 
 _end:
 
@@ -242,46 +255,10 @@ _print_values_A:
 	call	printf
 	addl	$4, %esp
 
-	movl	$1, %ebx
 	movl	number_of_elements_A, %ecx
 	movl	set_A, %edi
 
-	// Se esiver vazio, pula para o fim da funcao
-	cmpl	$0,	%ecx
-	je		_print_values_A_end
-
-	_print_values_A_loop:
-
-		// pushl pra backup
-		pushl	%ebx	
-		pushl	%ecx
-		pushl	%edi
-
-
-		// pega o valor e printa
-		movl	(%edi), %eax
-		movl	%eax, element
-
-		pushl	element	
-		pushl	$print_value
-		call	printf
-		addl	$8, %esp
-
-		// restaurando backup
-		popl	%edi
-		popl	%ecx
-		popl	%ebx
-
-		addl	$4, %edi
-		incl	%ebx
-
-	loop	_print_values_A_loop
-
-	_print_values_A_end:
-		// final da função, pula a linha e retorna
-	pushl	$skip_line	
-	call	printf
-	addl	$4, %esp
+	call	_print_set_values
 
 ret
 
@@ -291,15 +268,25 @@ _print_values_B:
 	call	printf
 	addl	$4, %esp
 
-	movl	$1, %ebx
 	movl	number_of_elements_B, %ecx
 	movl	set_B, %edi
 
+	call	_print_set_values
+
+ret
+
+_print_set_values:
+	// Mostra os valores do conjunto
+	
+	// movl	number_of_elements_B, %ecx
+	// movl	set_B, %edi			(feito antes de chamar a funcao)
+
 	// Se esiver vazio, pula para o fim da funcao
 	cmpl	$0,	%ecx
-	je		_print_values_B_end
+	je		_print_values_end
 
-	_print_values_B_loop:
+	movl	$1, %ebx
+	_print_values_loop:
 		// pushl pra backup
 		pushl	%ebx
 		pushl	%ecx
@@ -322,9 +309,9 @@ _print_values_B:
 		addl	$4, %edi
 		incl	%ebx
 
-	loop	_print_values_B_loop
+	loop	_print_values_loop
 
-	_print_values_B_end:
+	_print_values_end:
 		// final da função, pula a linha e retorna
 	pushl	$skip_line	
 	call	printf
