@@ -2,7 +2,7 @@
 	(X) 1 - Leitura dos Conjuntos
 	(X) 2 - Encontrar União
 	(X) 3 - Encontrar Intersecção
-	( ) 4 - Encontrar a Diferença
+	(X) 4 - Encontrar a Diferença
 	( ) 5 - Encontrar o Complementar
 */
 
@@ -22,8 +22,11 @@
 
 	union_msg:				.asciz	"\nEncontrar a Uniao dos Conjuntos\n\n"
 	intersect_msg:			.asciz	"\nEncontrar a Intersecao dos Conjuntos\n\n"
-	diff_msg:				.asciz	"\nEncontrar a Diferenca dos Conjuntos\n\n"
 	comp_msg:				.asciz	"\nEncontrar o Complementar dos Conjuntos\n\n"
+
+	diff_msg:				.asciz	"\nEncontrar a Diferenca dos Conjuntos\n\n"
+	diff_A_B_msg:			.asciz	"Diferenca A - B: "
+	diff_B_A_msg:			.asciz	"Diferenca B - A: "
 
 	ask_number_of_values:	.asciz	"Digite o numero de elementos do conjunto: "
 	ask_values:				.asciz	"Digite o elemento %d do conjunto: "
@@ -217,7 +220,9 @@ _find_union:
 	pushl	$union_msg
 	call	printf
 	addl	$4, %esp
-	call	_print_result	
+	call	_print_values_A
+	call	_print_values_B
+	call	_print_values_C
 	jmp		_main_menu
 
 
@@ -240,20 +245,64 @@ _find_intersection:
 	pushl	$intersect_msg
 	call	printf
 	addl	$4, %esp
-	call	_print_result	
+	call	_print_values_A
+	call	_print_values_B
+	call	_print_values_C
 	jmp		_main_menu
 
 
 _find_difference:
 	// Encontrar a Diferenca
 	call	_is_empty_error
-	call	_make_set_C_free
-
 
 	pushl	$diff_msg
 	call	printf
 	addl	$4, %esp
-	call	_print_result	
+	call	_print_values_A
+	call	_print_values_B
+
+	//	A - B
+	call	_make_set_C_free
+
+	movl	number_of_elements_A,	%eax
+	addl	number_of_elements_B,	%eax
+	movl	$4,	%ebx
+	mull	%ebx
+	call	_alloc_set
+	movl	%eax,	set_C
+
+	movl	number_of_elements_B,	%ecx
+	movl	%ecx,	number_of_elements_aux
+	movl	set_B,	%edi 
+	movl	%edi,	set_ptr
+
+	movl	number_of_elements_A,	%ecx
+	movl	set_A,	%edi 
+	call	_fill_diff
+	
+	call	_print_diff_A_B
+
+	//	B - A
+	call	_make_set_C_free
+
+	movl	number_of_elements_A,	%eax
+	addl	number_of_elements_B,	%eax
+	movl	$4,	%ebx
+	mull	%ebx
+	call	_alloc_set
+	movl	%eax,	set_C
+
+	movl	number_of_elements_A,	%ecx
+	movl	%ecx,	number_of_elements_aux
+	movl	set_A,	%edi 
+	movl	%edi,	set_ptr
+
+	movl	number_of_elements_B,	%ecx
+	movl	set_B,	%edi 
+	call	_fill_diff
+	
+	call	_print_diff_B_A
+
 	jmp		_main_menu
 
 
@@ -266,7 +315,9 @@ _find_complement:
 	pushl	$comp_msg
 	call	printf
 	addl	$4, %esp
-	call	_print_result	
+	call	_print_values_A
+	call	_print_values_B
+	call	_print_values_C
 	jmp		_main_menu
 
 _end:
@@ -282,12 +333,6 @@ _end:
 	call	exit
 
 ###############################################################################################
-
-_print_result:
-	call	_print_values_A
-	call	_print_values_B
-	call	_print_values_C
-ret
 
 _print_values_A:
 	// Mostra os valores do conjunto A
@@ -328,6 +373,35 @@ _print_values_C:
 	call	_print_set_values
 
 ret
+
+_print_diff_A_B:
+	// Mostra os valores das diferencas
+
+	pushl	$diff_A_B_msg
+	call	printf
+	addl	$4, %esp
+
+	movl	number_of_elements_C, %ecx
+	movl	set_C, %edi
+
+	call	_print_set_values
+
+ret
+
+_print_diff_B_A:
+	// Mostra os valores das diferencas
+
+	pushl	$diff_B_A_msg
+	call	printf
+	addl	$4, %esp
+
+	movl	number_of_elements_C, %ecx
+	movl	set_C, %edi
+
+	call	_print_set_values
+
+ret
+
 
 _print_set_values:
 	// Mostra os valores do conjunto
@@ -722,12 +796,53 @@ _fill_intersect:
 ret
 
 	_add_to_intersect:
-		//	se estiver em C, segue o loop, se nao estiver, adiciona
 		call	_add_to_C
 		jmp	_add_to_intersect_ret
 
+_fill_diff:
+
+	// movl	number_of_elements_A,	%ecx
+	// movl	set_A,	%edi   		(fazer isso antes de chamar a funcao)
+
+	movl	$1,	%ebx
+
+	_fill_diff_loop:
+		// no inicio do loop, reseta a flag de repeticao
+		movl	$0,	flag
+
+		// pushl pra backup
+		pushl	%ebx
+		pushl	%ecx
+		pushl	%edi
+
+		//	pega o elemento do conjunto e ve se ele esta em set_ptr
+		movl	(%edi), %eax
+		movl	%eax, element
+		movl	number_of_elements_aux, %ecx
+		movl	set_ptr, %edi
+		call	_check_for_repeat
 
 
+		//	se estiver em set_ptr, segue o loop, se nao estiver, adiciona
+		movl	flag,	%eax
+		cmpl	$0,	%eax
+		je		_add_to_diff
+			_add_to_diff_ret:
+
+		// restaurando backup
+		popl	%edi
+		popl	%ecx
+		popl	%ebx
+
+		addl	$4, %edi
+		incl	%ebx
+
+	loop	_fill_diff_loop
+ret
+
+	_add_to_diff:
+		call	_add_to_C
+		jmp	_add_to_diff_ret
 
 
 
