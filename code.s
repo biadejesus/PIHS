@@ -15,6 +15,7 @@
 	invalid_option_msg:		.asciz	"Opcao Invalida, tente novamente.\n"
 	invalid_value_msg:		.asciz	"Valor Invalido, tente novamente.\n"
 	repeat_value_msg:		.asciz	"Elemento ja presente no conjunto, tente novamente.\n"
+	empty_set_error_msg:	.asciz	"\nUm ou mais conjuntos estao vazios. Preencha-os antes de executar essa opcao\n"
 
 	read_values_msg:		.asciz	"\nLeitura dos Conjuntos\n\n"
 	read_values_menu:		.asciz	"\n\t1. Inserir Conjunto A\n\t2. Inserir Conjunto B\n\t3. Sair\n\n"
@@ -76,19 +77,19 @@ _get_main_option_loop:
 
 	// Encontrar Uniao
 	cmpl	$2, %eax	
-	je	_option2
+	je	_find_union
 
 	// Encontrar Intersecao
 	cmpl	$3, %eax	
-	je	_option3
+	je	_find_intersection
 
 	// Encontrar a Diferenca
 	cmpl	$4, %eax	
-	je	_option4
+	je	_find_difference
 
 	// Encontrar o Complementar
 	cmpl	$5, %eax	
-	je	_option5
+	je	_find_complement
 
 	// Sair
 	cmpl	$6, %eax	
@@ -147,7 +148,8 @@ _read_sets:
 		// Voltar ao menu principal
 		cmpl	$3, %eax	
 		je	_main_menu
-
+		
+		// Emite opcao invalida
 		pushl	$invalid_option_msg
 		call	printf
 		addl	$4, %esp
@@ -155,7 +157,9 @@ _read_sets:
 		jmp _get_read_option_loop
 
 	_read_set_A:
-	
+		// Leitura do conjunto A
+
+		// Pede o numero de elementos do conjunto A
 		pushl	max_number_of_elements
 		pushl	$ask_number_of_values
 		call	printf
@@ -166,19 +170,21 @@ _read_sets:
 		call	scanf
 		addl	$8, %esp
 
+		// Ve se o numero de elementos eh um valor invalido
 		movl	number_of_elements_A, %eax
 		cmpl	max_number_of_elements,	%eax
 		jg	_invalid_value_A
 		cmpl	$0,	%eax
 		jl	_invalid_value_A
 
-
+		// Chama funcao que le os valores para o conjunto A
 		call _get_values_for_A
 
 
 		jmp	_read_sets
 
 		_invalid_value_A:
+			// Se o valor for invalido, exibe a mensagem e tenta novamente
 			pushl	$invalid_value_msg
 			call	printf
 			addl	$4, %esp
@@ -187,7 +193,9 @@ _read_sets:
 
 
 	_read_set_B:
-	
+		// Leitura do conjunto B
+
+		// Pede o numero de elementos do conjunto B
 		pushl	max_number_of_elements
 		pushl	$ask_number_of_values
 		call	printf
@@ -198,42 +206,82 @@ _read_sets:
 		call	scanf
 		addl	$8, %esp
 
+		// Ve se o numero de elementos eh um valor invalido
 		movl	number_of_elements_B, %eax
 		cmpl	max_number_of_elements,	%eax
 		jg	_invalid_value_B
 		cmpl	$0,	%eax
 		jl	_invalid_value_B
 
+		// Chama funcao que le os valores para o conjunto B
 		call _get_values_for_B
 
 
 		jmp	_read_sets
 
 		_invalid_value_B:
+			// Se o valor for invalido, exibe a mensagem e tenta novamente
 			pushl	$invalid_value_msg
 			call	printf
 			addl	$4, %esp
 			
 			jmp	_read_set_B
 
-_option2:
+_find_union:
 	// Encontrar Uniao
+	movl	number_of_elements_A, %eax
+	movl	number_of_elements_B, %ebx
+	cmpl	$0, %eax
+	je		_empty_set_error
+	cmpl	$0, %ebx
+	je		_empty_set_error
 
-_option3:
+_find_intersection:
 	// Encontrar Intersecao
+	movl	number_of_elements_A, %eax
+	movl	number_of_elements_B, %ebx
+	cmpl	$0, %eax
+	je		_empty_set_error
+	cmpl	$0, %ebx
+	je		_empty_set_error
 
-_option4:
+
+_find_difference:
 	// Encontrar a Diferenca
+	movl	number_of_elements_A, %eax
+	movl	number_of_elements_B, %ebx
+	cmpl	$0, %eax
+	je		_empty_set_error
+	cmpl	$0, %ebx
+	je		_empty_set_error
 
-_option5:
+
+_find_complement:
 	// Encontrar o Complementar
+	movl	number_of_elements_A, %eax
+	movl	number_of_elements_B, %ebx
+	cmpl	$0, %eax
+	je		_empty_set_error
+	cmpl	$0, %ebx
+	je		_empty_set_error
+
 
 _end:
 
 	pushl	$0
 	call	exit
 
+_empty_set_error:
+
+	// Exibe a mensagem de erro para o caso do conjunto estar vazio
+	pushl	$empty_set_error_msg	
+	call	printf
+
+	// Retorna ao menu principal
+	jmp	_main_menu
+
 _print_values_A:
+	// Mostra os valores do conjunto A
 
 	pushl	$print_values_A
 	call	printf
@@ -243,16 +291,19 @@ _print_values_A:
 	movl	number_of_elements_A, %ecx
 	movl	$set_A, %edi
 
+	// Se esiver vazio, pula para o fim da funcao
 	cmpl	$0,	%ecx
-	je	_print_values_B_end
+	je	_print_values_A_end
 
 	_print_values_A_loop:
 
-		pushl	%ebx
+		// pushl pra backup
+		pushl	%ebx	
 		pushl	%ecx
 		pushl	%edi
 
 
+		// pega o valor e printa
 		movl	(%edi), %eax
 		movl	%eax, element
 
@@ -261,7 +312,7 @@ _print_values_A:
 		call	printf
 		addl	$8, %esp
 
-
+		// restaurando backup
 		popl	%edi
 		popl	%ecx
 		popl	%ebx
@@ -272,7 +323,7 @@ _print_values_A:
 	loop	_print_values_A_loop
 
 	_print_values_A_end:
-
+		// final da função, pula a linha e retorna
 	pushl	$skip_line	
 	call	printf
 	addl	$4, %esp
@@ -280,7 +331,7 @@ _print_values_A:
 ret
 
 _print_values_B:
-
+	// Mostra os valores do conjunto B
 	pushl	$print_values_B
 	call	printf
 	addl	$4, %esp
@@ -289,16 +340,17 @@ _print_values_B:
 	movl	number_of_elements_B, %ecx
 	movl	$set_B, %edi
 
+	// Se esiver vazio, pula para o fim da funcao
 	cmpl	$0,	%ecx
 	je	_print_values_B_end
 
 	_print_values_B_loop:
-
+		// pushl pra backup
 		pushl	%ebx
 		pushl	%ecx
 		pushl	%edi
 
-
+		// pega o valor e printa
 		movl	(%edi), %eax
 		movl	%eax, element
 
@@ -307,7 +359,7 @@ _print_values_B:
 		call	printf
 		addl	$8, %esp
 
-
+		// restaurando backup
 		popl	%edi
 		popl	%ecx
 		popl	%ebx
@@ -318,6 +370,7 @@ _print_values_B:
 	loop	_print_values_B_loop
 
 	_print_values_B_end:
+		// final da função, pula a linha e retorna
 	pushl	$skip_line	
 	call	printf
 	addl	$4, %esp
@@ -325,20 +378,23 @@ _print_values_B:
 ret
 
 _get_values_for_A:
+	// le os valores do usuario e coloca no conjunto A
 
 	movl	$1, %ebx
 	movl	number_of_elements_A, %ecx
 	movl	$set_A, %edi
+	movl	$0,	aux
 
 	_read_set_A_loop:
+		// no inicio do loop, reseta a flag de repeticao
 		movl	$0,	flag
-		movl	%ebx,	aux
-		decl	aux
 
+		// pushl pra backup
 		pushl	%ebx
 		pushl	%ecx
 		pushl	%edi
 
+		// pede um valor
 		pushl	%ebx
 		pushl	$ask_values
 		call	printf
@@ -349,40 +405,47 @@ _get_values_for_A:
 		call	scanf
 		addl	$8, %esp
 
+		// verifica repetição, se houver levanta a flag
 		call	_check_for_repeat_A
 
+		// restaurando backup
 		popl	%edi
 		popl	%ecx
 		popl	%ebx
 
+		// se houve repetição tenta novamente sem incrementar o contador
 		movl	flag,	%eax
 		cmpl	$1,	%eax
 		je	_read_set_A_loop
 
+		// se nao houve repetição segue o loop
 		movl	element, %eax
 		movl	%eax, (%edi)
 		addl	$4, %edi
 		incl	%ebx
+		incl	aux
 
 	loop	_read_set_A_loop
 
 ret
 
 _get_values_for_B:
-
+	// le os valores do usuario e coloca no conjunto B
 	movl	$1, %ebx
 	movl	number_of_elements_B, %ecx
 	movl	$set_B, %edi
+	movl	$0,	aux
 
 	_read_set_B_loop:
+		// no inicio do loop, reseta a flag de repeticao
 		movl	$0,	flag
-		movl	%ebx,	aux
-		decl	aux
 
+		// pushl pra backup
 		pushl	%ebx
 		pushl	%ecx
 		pushl	%edi
 
+		// pede um valor
 		pushl	%ebx
 		pushl	$ask_values
 		call	printf
@@ -393,46 +456,55 @@ _get_values_for_B:
 		call	scanf
 		addl	$8, %esp
 
+		// verifica repetição, se houver levanta a flag
 		call	_check_for_repeat_B
 
+		// restaurando backup
 		popl	%edi
 		popl	%ecx
 		popl	%ebx
 
+		// se houve repetição tenta novamente sem incrementar o contador
 		movl	flag,	%eax
 		cmpl	$1,	%eax
 		je	_read_set_B_loop
 
+		// se nao houve repetição segue o loop
 		movl	element, %eax
 		movl	%eax, (%edi)
 		addl	$4, %edi
 		incl	%ebx
+		incl	aux
 
 	loop	_read_set_B_loop
 			
 ret
 
 _check_for_repeat_A:
-
+	// funcao para checar se o elemento eh repetido em A
 	movl	$1, %ebx
 	movl	aux, %ecx
 	movl	$set_A, %edi
 
+	// se for o primeiro elemento não precisa checar, pula para o fim
 	cmpl	$0, %ecx
 	jle	_check_for_repeat_A_end
 
 	_check_for_repeat_A_loop:
 
+		// pushl pra backup
 		pushl	%ebx
 		pushl	%ecx
 		pushl	%edi
 
-
+		// se o elemento for repetido, pula para a funcao
 		movl	(%edi), %eax
 		cmpl	element, %eax
-		je	_is_element_A_repeat
-		_is_element_A_repeat_ret:
-
+		je	_element_in_A_is_repeated
+		_element_in_A_is_repeated_ret:
+			// label de retorno
+		
+		// restaurando backup
 		popl	%edi
 		popl	%ecx
 		popl	%ebx
@@ -443,34 +515,41 @@ _check_for_repeat_A:
 	loop	_check_for_repeat_A_loop
 
 _check_for_repeat_A_end:
+	// final da função, retorna
 ret
 
-_is_element_A_repeat:
+_element_in_A_is_repeated:
+	//	chama a função para printar a mensagem de erro na tela e levantar flag
 	movl	$0,	flag
 	call _repeat_value_error
-	jmp	_is_element_A_repeat_ret
+	// retorna para a execução
+	jmp	_element_in_A_is_repeated_ret
 
 _check_for_repeat_B:
+	// funcao para checar se o elemento eh repetido em A
 
 	movl	$1, %ebx
 	movl	aux, %ecx
 	movl	$set_B, %edi
 
+	// se for o primeiro elemento não precisa checar, pula para o fim
 	cmpl	$0, %ecx
 	jle	_check_for_repeat_B_end
 
 	_check_for_repeat_B_loop:
 
+		// pushl pra backup
 		pushl	%ebx
 		pushl	%ecx
 		pushl	%edi
 
-
+		// se o elemento for repetido, pula para a funcao
 		movl	(%edi), %eax
 		cmpl	element, %eax
 		je	_is_element_B_repeat
 		_is_element_B_repeat_ret:
-
+			// label de retorno
+		// restaurando backup
 		popl	%edi
 		popl	%ecx
 		popl	%ebx
@@ -482,15 +561,19 @@ _check_for_repeat_B:
 
 
 _check_for_repeat_B_end:
+	// final da função, retorna
 ret
 
 _is_element_B_repeat:
+	//	chama a função para printar a mensagem de erro na tela e levantar flag
 	movl	$0,	flag
 	call _repeat_value_error
+	// retorna para a execução
 	jmp	_is_element_B_repeat_ret
 
 _repeat_value_error:
 
+	// levanta a flag, printa a mensagem de erro na tela e retorna
 	pushl	$repeat_value_msg
 	call	printf
 	addl	$4, %esp
