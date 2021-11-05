@@ -1,7 +1,7 @@
 /*	To do:
 	(X) 1 - Leitura dos Conjuntos
 	(X) 2 - Encontrar União
-	( ) 3 - Encontrar Intersecção
+	(X) 3 - Encontrar Intersecção
 	( ) 4 - Encontrar a Diferença
 	( ) 5 - Encontrar o Complementar
 */
@@ -226,6 +226,16 @@ _find_intersection:
 	call	_is_empty_error
 	call	_make_set_C_free
 
+	movl	number_of_elements_A,	%eax
+	addl	number_of_elements_B,	%eax
+	movl	$4,	%ebx
+	mull	%ebx
+	call	_alloc_set
+	movl	%eax,	set_C
+
+	movl	number_of_elements_A,	%ecx
+	movl	set_A,	%edi   
+	call	_fill_intersect
 
 	pushl	$intersect_msg
 	call	printf
@@ -647,7 +657,6 @@ _fill_union:
 		call	_check_for_repeat
 
 
-
 		//	se estiver em C, segue o loop, se nao estiver, adiciona
 		movl	flag,	%eax
 		cmpl	$0,	%eax
@@ -665,12 +674,63 @@ _fill_union:
 	loop	_find_union_loop
 ret
 
-	
+	_add_to_union:
+		//	se estiver em C, segue o loop, se nao estiver, adiciona
+		call	_add_to_C
+		jmp	_add_to_union_ret
 
-_add_to_union:
-	//	se estiver em C, segue o loop, se nao estiver, adiciona
-	call	_add_to_C
-	jmp	_add_to_union_ret
+
+_fill_intersect:
+	
+	// movl	number_of_elements_A,	%ecx
+	// movl	set_A,	%edi   		(fazer isso antes de chamar a funcao)
+
+	movl	$1,	%ebx
+
+	_fill_intersect_loop:
+		// no inicio do loop, reseta a flag de repeticao
+		movl	$0,	flag
+
+		// pushl pra backup
+		pushl	%ebx
+		pushl	%ecx
+		pushl	%edi
+
+		//	pega o elemento do conjunto e ve se ele esta em B
+		movl	(%edi), %eax
+		movl	%eax, element
+		movl	number_of_elements_B, %ecx
+		movl	set_B, %edi
+		call	_check_for_repeat
+
+
+		//	se estiver em B, adiciona, se nao estiver, segue o loop
+		movl	flag,	%eax
+		cmpl	$1,	%eax
+		je		_add_to_intersect
+			_add_to_intersect_ret:
+
+		// restaurando backup
+		popl	%edi
+		popl	%ecx
+		popl	%ebx
+
+		addl	$4, %edi
+		incl	%ebx
+
+	loop	_fill_intersect_loop
+ret
+
+	_add_to_intersect:
+		//	se estiver em C, segue o loop, se nao estiver, adiciona
+		call	_add_to_C
+		jmp	_add_to_intersect_ret
+
+
+
+
+
+
 
 _add_to_C:
 		movl	number_of_elements_C,	%eax
