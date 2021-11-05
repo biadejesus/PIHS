@@ -30,7 +30,8 @@
 
 	set_A:		.space	4
 	set_B:		.space	4
-	
+	set_ptr:	.space	4
+
 	number_of_elements_A:		.int	0
 	number_of_elements_B:		.int	0
 
@@ -180,10 +181,15 @@ _read_sets:
 		jle		_invalid_value_A
 
 		// Aloca o espaco para o conjunto A
-		call	_alloc_set_A
+		movl	$4, %eax
+		mull	number_of_elements_A
+		call	_alloc_set
+		movl	%eax, set_A
 
 		// Chama funcao que le os valores para o conjunto A
-		call 	_get_values_for_A
+		movl	number_of_elements_A, %ecx
+		movl	set_A, %edi
+		call 	_get_values_for_set
 
 
 		jmp		_read_sets
@@ -228,10 +234,15 @@ _read_sets:
 		jle		_invalid_value_B
 
 		// Aloca o espaco para o conjunto B
-		call	_alloc_set_B
+		movl	$4, %eax
+		mull	number_of_elements_B
+		call	_alloc_set
+		movl	%eax, set_B
 
 		// Chama funcao que le os valores para o conjunto B
-		call 	_get_values_for_B
+		movl	number_of_elements_B, %ecx
+		movl	set_B, %edi
+		call 	_get_values_for_set
 
 
 		jmp		_read_sets
@@ -329,7 +340,7 @@ _print_values_A:
 
 	movl	$1, %ebx
 	movl	number_of_elements_A, %ecx
-	movl	$set_A, %edi
+	movl	set_A, %edi
 
 	// Se esiver vazio, pula para o fim da funcao
 	cmpl	$0,	%ecx
@@ -378,7 +389,7 @@ _print_values_B:
 
 	movl	$1, %ebx
 	movl	number_of_elements_B, %ecx
-	movl	$set_B, %edi
+	movl	set_B, %edi
 
 	// Se esiver vazio, pula para o fim da funcao
 	cmpl	$0,	%ecx
@@ -417,15 +428,17 @@ _print_values_B:
 
 ret
 
-_get_values_for_A:
-	// le os valores do usuario e coloca no conjunto A
+_get_values_for_set:
+	// le os valores do usuario e coloca no conjunto
+
+	// movl	number_of_elements_B, %ecx
+	// movl	set_B, %edi		(isso deve ser feito antes de chamar a funcao)
 
 	movl	$1, %ebx
-	movl	number_of_elements_A, %ecx
-	movl	$set_A, %edi
 	movl	$0,	aux
+	movl	%edi,	set_ptr
 
-	_read_set_A_loop:
+	_get_values_loop:
 		// no inicio do loop, reseta a flag de repeticao
 		movl	$0,	flag
 
@@ -446,7 +459,9 @@ _get_values_for_A:
 		addl	$8, %esp
 
 		// verifica repetição, se houver levanta a flag
-		call	_check_for_repeat_A
+		movl	aux, %ecx
+		movl	set_ptr, %edi
+		call	_check_for_repeat
 
 		// restaurando backup
 		popl	%edi
@@ -456,7 +471,7 @@ _get_values_for_A:
 		// se houve repetição tenta novamente sem incrementar o contador
 		movl	flag,	%eax
 		cmpl	$1,	%eax
-		je		_read_set_A_loop
+		je	_get_values_loop
 
 		// se nao houve repetição segue o loop
 		movl	element, %eax
@@ -465,72 +480,23 @@ _get_values_for_A:
 		incl	%ebx
 		incl	aux
 
-	loop	_read_set_A_loop
-
-ret
-
-_get_values_for_B:
-	// le os valores do usuario e coloca no conjunto B
-	movl	$1, %ebx
-	movl	number_of_elements_B, %ecx
-	movl	$set_B, %edi
-	movl	$0,	aux
-
-	_read_set_B_loop:
-		// no inicio do loop, reseta a flag de repeticao
-		movl	$0,	flag
-
-		// pushl pra backup
-		pushl	%ebx
-		pushl	%ecx
-		pushl	%edi
-
-		// pede um valor
-		pushl	%ebx
-		pushl	$ask_values
-		call	printf
-		addl	$8, %esp
-
-		pushl	$element
-		pushl	$int_type
-		call	scanf
-		addl	$8, %esp
-
-		// verifica repetição, se houver levanta a flag
-		call	_check_for_repeat_B
-
-		// restaurando backup
-		popl	%edi
-		popl	%ecx
-		popl	%ebx
-
-		// se houve repetição tenta novamente sem incrementar o contador
-		movl	flag,	%eax
-		cmpl	$1,	%eax
-		je	_read_set_B_loop
-
-		// se nao houve repetição segue o loop
-		movl	element, %eax
-		movl	%eax, (%edi)
-		addl	$4, %edi
-		incl	%ebx
-		incl	aux
-
-	loop	_read_set_B_loop
+	loop	_get_values_loop
 			
 ret
 
-_check_for_repeat_A:
-	// funcao para checar se o elemento eh repetido em A
-	movl	$1, %ebx
-	movl	aux, %ecx
-	movl	$set_A, %edi
+_check_for_repeat:
+	// funcao para checar se o elemento eh repetido no conjunto
+
+	// movl	aux, %ecx
+	// movl	set_ptr, %edi   (isso deve ser feito antes de chamar a funcao)
 
 	// se for o primeiro elemento não precisa checar, pula para o fim
 	cmpl	$0, %ecx
-	jle		_check_for_repeat_A_end
+	jle		_check_for_repeat_end
 
-	_check_for_repeat_A_loop:
+	movl	$1, %ebx
+
+	_check_for_repeat_loop:
 
 		// pushl pra backup
 		pushl	%ebx
@@ -540,10 +506,8 @@ _check_for_repeat_A:
 		// se o elemento for repetido, pula para a funcao
 		movl	(%edi), %eax
 		cmpl	element, %eax
-		je		_element_in_A_is_repeated
-		_element_in_A_is_repeated_ret:
-			// label de retorno
-		
+		je		_element_is_repeating
+
 		// restaurando backup
 		popl	%edi
 		popl	%ecx
@@ -552,64 +516,28 @@ _check_for_repeat_A:
 		addl	$4, %edi
 		incl	%ebx
 
-	loop	_check_for_repeat_A_loop
-
-	_check_for_repeat_A_end:
-	// final da função, retorna
-ret
-
-	_element_in_A_is_repeated:
-		//	chama a função para printar a mensagem de erro na tela e levantar flag
-		call	_repeat_value_error
-		// retorna para a execução
-		jmp		_element_in_A_is_repeated_ret
-
-_check_for_repeat_B:
-	// funcao para checar se o elemento eh repetido em A
-
-	movl	$1, %ebx
-	movl	aux, %ecx
-	movl	$set_B, %edi
-
-	// se for o primeiro elemento não precisa checar, pula para o fim
-	cmpl	$0, %ecx
-	jle		_check_for_repeat_B_end
-
-	_check_for_repeat_B_loop:
-
-		// pushl pra backup
-		pushl	%ebx
-		pushl	%ecx
-		pushl	%edi
-
-		// se o elemento for repetido, pula para a funcao
-		movl	(%edi), %eax
-		cmpl	element, %eax
-		je		_is_element_B_repeat
-		_is_element_B_repeat_ret:
-			// label de retorno
-		// restaurando backup
-		popl	%edi
-		popl	%ecx
-		popl	%ebx
-
-		addl	$4, %edi
-		incl	%ebx
-
-	loop	_check_for_repeat_B_loop
+	loop	_check_for_repeat_loop
 
 
-	_check_for_repeat_B_end:
+	_check_for_repeat_end:
 		// final da função, retorna
 ret
 
-	_is_element_B_repeat:
-		//	chama a função para printar a mensagem de erro na tela e levantar flag
-		call	_repeat_value_error
-		// retorna para a execução
-		jmp		_is_element_B_repeat_ret
+	_element_is_repeating:
+		// levanta a flag, printa a mensagem de erro na tela e retorna
 
-_repeat_value_error:
+		movl	$1,	flag
+		pushl	$repeat_value_msg
+		call	printf
+		addl	$4, %esp
+		
+		// remove os backups
+		addl	$12, %esp
+
+		// retorna para a execução
+		jmp		_check_for_repeat_end
+
+_repeated_value_error:
 	// levanta a flag, printa a mensagem de erro na tela e retorna
 	pushl	$repeat_value_msg
 	call	printf
@@ -617,27 +545,14 @@ _repeat_value_error:
 	movl	$1,	flag
 ret
 
-_alloc_set_A:
-	// aloca o set_A
-	movl	$4, %eax
-	mull	number_of_elements_A
+_alloc_set:
+
+	// aloca um conjunto de tamanho que está em %eax, e guarda o valor em %eax msm
 	pushl	%eax
 	call	malloc
-	movl	%eax, set_A
 	addl	$4, %esp
 
 ret
-
-_alloc_set_B:
-	// aloca o set_B
-	movl	$4, %eax
-	mull	number_of_elements_B
-	pushl	%eax
-	call	malloc
-	movl	%eax, set_B
-	addl	$4, %esp
-ret
-
 
 _free_set_A:
 	// desaloca o set_A
