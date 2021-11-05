@@ -34,6 +34,7 @@
 
 	number_of_elements_A:		.int	0
 	number_of_elements_B:		.int	0
+	number_of_elements_aux:		.int	0
 
 	element:		.int	0
 	flag:			.int	0
@@ -158,109 +159,31 @@ _read_sets:
 
 	_read_set_A:
 		// Leitura do conjunto A
+		
+		movl	number_of_elements_A,	%eax
+		movl	set_A,	%ebx
 
-		// se ja estiver alocado, desaloca e continua
-		movl	$0,	%eax
-		cmpl	number_of_elements_A,	%eax
-		jne		_free_A_before_read
-			_free_A_before_read_ret:
+		call	_fill_set
 
-		// Pede o numero de elementos do conjunto A
-		pushl	$ask_number_of_values
-		call	printf
-		addl	$4, %esp
-
-		pushl	$number_of_elements_A
-		pushl	$int_type
-		call	scanf
-		addl	$8, %esp
-
-		// Ve se o numero de elementos eh um valor invalido
-		movl	number_of_elements_A, %eax
-		cmpl	$0,	%eax
-		jle		_invalid_value_A
-
-		// Aloca o espaco para o conjunto A
-		movl	$4, %eax
-		mull	number_of_elements_A
-		call	_alloc_set
-		movl	%eax, set_A
-
-		// Chama funcao que le os valores para o conjunto A
-		movl	number_of_elements_A, %ecx
-		movl	set_A, %edi
-		call 	_get_values_for_set
-
+		movl	%eax,	number_of_elements_A
+		movl	%ebx,	set_A
 
 		jmp		_read_sets
-
-		_invalid_value_A:
-			// Se o valor for invalido, exibe a mensagem e tenta novamente
-			pushl	$invalid_value_msg
-			call	printf
-			addl	$4, %esp
-			
-			jmp		_read_set_A
-
-		_free_A_before_read:
-			// desaloca A e retorna
-			pushl	set_A
-			call	free
-
-			jmp		_free_A_before_read_ret
 
 	_read_set_B:
 		// Leitura do conjunto B
 
-		// se ja estiver alocado, desaloca e continua
-		movl	$0,	%eax
-		cmpl	number_of_elements_B,	%eax
-		jne		_free_B_before_read
-			_free_B_before_read_ret:
+		movl	number_of_elements_B,	%eax
+		movl	set_B,	%ebx
 
-		// Pede o numero de elementos do conjunto B
-		pushl	$ask_number_of_values
-		call	printf
-		addl	$4, %esp
+		call	_fill_set
 
-		pushl	$number_of_elements_B
-		pushl	$int_type
-		call	scanf
-		addl	$8, %esp
-
-		// Ve se o numero de elementos eh um valor invalido
-		movl	number_of_elements_B, %eax
-		cmpl	$0,	%eax
-		jle		_invalid_value_B
-
-		// Aloca o espaco para o conjunto B
-		movl	$4, %eax
-		mull	number_of_elements_B
-		call	_alloc_set
-		movl	%eax, set_B
-
-		// Chama funcao que le os valores para o conjunto B
-		movl	number_of_elements_B, %ecx
-		movl	set_B, %edi
-		call 	_get_values_for_set
-
+		movl	%eax,	number_of_elements_B
+		movl	%ebx,	set_B
 
 		jmp		_read_sets
 
-		_invalid_value_B:
-			// Se o valor for invalido, exibe a mensagem e tenta novamente
-			pushl	$invalid_value_msg
-			call	printf
-			addl	$4, %esp
-			
-			jmp		_read_set_B
 
-		_free_B_before_read:
-			// desaloca B e retorna
-			pushl	set_B
-			call	free
-
-			jmp		_free_B_before_read_ret
 _find_union:
 	// Encontrar Uniao
 	movl	number_of_elements_A, %eax
@@ -556,3 +479,60 @@ _alloc_set:
 	addl	$4, %esp
 
 ret
+
+_fill_set:
+
+	movl	%eax,	number_of_elements_aux
+	movl	%ebx,	set_ptr
+
+	// se ja estiver alocado, desaloca e continua
+	movl	$0,	%eax
+	cmpl	number_of_elements_aux,	%eax
+	jne		_free_set_before_read
+		_free_set_before_read_ret:
+
+	// Pede o numero de elementos do conjunto
+	pushl	$ask_number_of_values
+	call	printf
+	addl	$4, %esp
+
+	pushl	$number_of_elements_aux
+	pushl	$int_type
+	call	scanf
+	addl	$8, %esp
+
+	// Ve se o numero de elementos eh um valor invalido
+	movl	number_of_elements_aux, %eax
+	cmpl	$0,	%eax
+	jle		_invalid_value
+
+	// Aloca o espaco para o conjunto
+	movl	$4, %eax
+	mull	number_of_elements_aux
+	call	_alloc_set
+	movl	%eax, set_ptr
+
+	// Chama funcao que le os valores para o conjunto
+	movl	number_of_elements_aux, %ecx
+	movl	set_ptr, %edi
+	call 	_get_values_for_set
+
+	movl	number_of_elements_aux,	%eax	
+	movl	set_ptr,	%ebx
+
+ret
+
+	_invalid_value:
+		// Se o valor for invalido, exibe a mensagem e tenta novamente
+		pushl	$invalid_value_msg
+		call	printf
+		addl	$4, %esp
+		
+		jmp		_fill_set
+
+	_free_set_before_read:
+		// desaloca conjunto e retorna
+		pushl	set_ptr
+		call	free
+
+		jmp		_free_set_before_read_ret
