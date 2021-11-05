@@ -223,12 +223,14 @@ _end:
 		pushl	set_A
 		call	free
 		addl	$4, %esp
+
 		jmp _free_set_A_ret
 		
 	_free_set_B:
 		pushl	set_B
 		call	free
 		addl	$4, %esp
+		
 		jmp _free_set_B_ret
 		
 ###############################################################################################
@@ -510,6 +512,7 @@ ret
 		// desaloca conjunto e retorna
 		pushl	set_ptr
 		call	free
+		addl	$4, %esp
 
 		jmp		_free_set_before_read_ret
 
