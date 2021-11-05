@@ -20,20 +20,29 @@
 	read_values_msg:		.asciz	"\nLeitura dos Conjuntos\n\n"
 	read_values_menu:		.asciz	"\n\t1. Inserir Conjunto A\n\t2. Inserir Conjunto B\n\t3. Sair\n\n"
 
+	union_msg:				.asciz	"\nEncontrar a Uniao dos Conjuntos\n\n"
+	intersect_msg:			.asciz	"\nEncontrar a Intersecao dos Conjuntos\n\n"
+	diff_msg:				.asciz	"\nEncontrar a Diferenca dos Conjuntos\n\n"
+	comp_msg:				.asciz	"\nEncontrar o Complementar dos Conjuntos\n\n"
+
 	ask_number_of_values:	.asciz	"Digite o numero de elementos do conjunto: "
 	ask_values:				.asciz	"Digite o elemento %d do conjunto: "
 
 	print_values_A:			.asciz	"Valores do Conjunto A: "
 	print_values_B:			.asciz	"Valores do Conjunto B: "
+	print_values_C:			.asciz	"Resultado: "
+
 	print_value:			.asciz	"%d "
 	skip_line:				.asciz	"\n"
 
 	set_A:		.space	4
 	set_B:		.space	4
+	set_C:		.space	4
 	set_ptr:	.space	4
 
 	number_of_elements_A:		.int	0
 	number_of_elements_B:		.int	0
+	number_of_elements_C:		.int	0
 	number_of_elements_aux:		.int	0
 
 	element:		.int	0
@@ -188,32 +197,66 @@ _read_sets:
 _find_union:
 	// Encontrar Uniao
 	call	_is_empty_error
+	call	_make_set_C_free
 
+	movl	number_of_elements_A,	%eax
+	addl	number_of_elements_B,	%eax
+	movl	$4,	%ebx
+	mull	%ebx
+	call	_alloc_set
+	movl	%eax,	set_C
 
+	movl	number_of_elements_A,	%ecx
+	movl	set_A,	%edi   
+	call	_fill_union
+
+	movl	number_of_elements_B,	%ecx
+	movl	set_B,	%edi   
+	call	_fill_union
+
+	pushl	$union_msg
+	call	printf
+	addl	$4, %esp
+	call	_print_result	
 	jmp		_main_menu
 
 
 _find_intersection:
 	// Encontrar Intersecao
 	call	_is_empty_error
+	call	_make_set_C_free
 
 
+	pushl	$intersect_msg
+	call	printf
+	addl	$4, %esp
+	call	_print_result	
 	jmp		_main_menu
 
 
 _find_difference:
 	// Encontrar a Diferenca
 	call	_is_empty_error
+	call	_make_set_C_free
 
 
+	pushl	$diff_msg
+	call	printf
+	addl	$4, %esp
+	call	_print_result	
 	jmp		_main_menu
 
 
 _find_complement:
 	// Encontrar o Complementar
 	call	_is_empty_error
+	call	_make_set_C_free
 
 
+	pushl	$comp_msg
+	call	printf
+	addl	$4, %esp
+	call	_print_result	
 	jmp		_main_menu
 
 _end:
@@ -221,32 +264,20 @@ _end:
 	//	se foi alocado valores nos conjuntos, desalocar
 	movl	$0,	%eax
 
-	cmpl	number_of_elements_A, %eax
-	jne		_free_set_A
-		_free_set_A_ret:
-
-	cmpl	number_of_elements_B, %eax
-	jne		_free_set_B
-		_free_set_B_ret:
+	call	_make_set_A_free
+	call	_make_set_B_free
+	call	_make_set_C_free
 
 	pushl	$0
 	call	exit
 
-	_free_set_A:
-		pushl	set_A
-		call	free
-		addl	$4, %esp
-
-		jmp _free_set_A_ret
-		
-	_free_set_B:
-		pushl	set_B
-		call	free
-		addl	$4, %esp
-		
-		jmp _free_set_B_ret
-		
 ###############################################################################################
+
+_print_result:
+	call	_print_values_A
+	call	_print_values_B
+	call	_print_values_C
+ret
 
 _print_values_A:
 	// Mostra os valores do conjunto A
@@ -270,6 +301,19 @@ _print_values_B:
 
 	movl	number_of_elements_B, %ecx
 	movl	set_B, %edi
+
+	call	_print_set_values
+
+ret
+
+_print_values_C:
+	// Mostra os valores do conjunto C
+	pushl	$print_values_C
+	call	printf
+	addl	$4, %esp
+
+	movl	number_of_elements_C, %ecx
+	movl	set_C, %edi
 
 	call	_print_set_values
 
@@ -374,6 +418,7 @@ _get_values_for_set:
 	loop	_get_values_loop
 			
 ret
+
 
 _repeat_value_error:
 
@@ -528,6 +573,117 @@ ret
 		// Remove o endereço de retorno do call e retorna ao menu principal
 		addl	$4, %esp
 		jmp		_main_menu
+	
+_make_set_A_free:
+	movl	number_of_elements_A,	%eax
+	cmpl	$0,	%eax
+	jne		_free_set_A
+		_free_set_A_ret:
+ret		
+	_free_set_A:
+		pushl	set_A
+		call	free
+		addl	$4, %esp
+		movl	$0,	number_of_elements_A
+
+		jmp 	_free_set_A_ret
+
+
+
+_make_set_B_free:
+	movl	number_of_elements_B,	%eax
+	cmpl	$0,	%eax
+	jne		_free_set_B
+		_free_set_B_ret:
+ret		
+	_free_set_B:
+		pushl	set_B
+		call	free
+		addl	$4, %esp
+		movl	$0,	number_of_elements_B
+		
+		jmp 	_free_set_B_ret
+		
+
+
+_make_set_C_free:
+
+	movl	number_of_elements_C,	%eax
+	cmpl	$0,	%eax
+	jne		_free_set_C
+		_free_set_C_ret:
+ret		
+
+	_free_set_C:
+		pushl	set_C
+		call	free
+		addl	$4, %esp
+		movl	$0,	number_of_elements_C
+
+		jmp		_free_set_C_ret
+
+
+_fill_union:
+	
+	// movl	number_of_elements_A,	%ecx
+	// movl	set_A,	%edi   		(fazer isso antes de chamar a funcao)
+
+	movl	$1,	%ebx
+
+	_find_union_loop:
+		// no inicio do loop, reseta a flag de repeticao
+		movl	$0,	flag
+
+		// pushl pra backup
+		pushl	%ebx
+		pushl	%ecx
+		pushl	%edi
+
+		//	pega o elemento do conjunto e ve se ele esta em C
+		movl	(%edi), %eax
+		movl	%eax, element
+		movl	number_of_elements_C, %ecx
+		movl	set_C, %edi
+		call	_check_for_repeat
+
+
+
+		//	se estiver em C, segue o loop, se nao estiver, adiciona
+		movl	flag,	%eax
+		cmpl	$0,	%eax
+		je		_add_to_union
+			_add_to_union_ret:
+
+		// restaurando backup
+		popl	%edi
+		popl	%ecx
+		popl	%ebx
+
+		addl	$4, %edi
+		incl	%ebx
+
+	loop	_find_union_loop
+ret
+
+	
+
+_add_to_union:
+	//	se estiver em C, segue o loop, se nao estiver, adiciona
+	call	_add_to_C
+	jmp	_add_to_union_ret
+
+_add_to_C:
+		movl	number_of_elements_C,	%eax
+		movl	$4,	%ebx
+		mull	%ebx
+
+		movl	set_C,	%edi
+		addl	%eax,	%edi
+
+		movl	element, %eax
+		movl	%eax, (%edi)
+		incl	number_of_elements_C
+ret
 
 
 
