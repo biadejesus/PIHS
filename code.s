@@ -186,76 +186,52 @@ _read_sets:
 
 _find_union:
 	// Encontrar Uniao
-	movl	number_of_elements_A, %eax
-	movl	number_of_elements_B, %ebx
-	cmpl	$0, %eax
-	je		_empty_set_error
-	cmpl	$0, %ebx
-	je		_empty_set_error
+	call	_is_empty_error
+
 
 _find_intersection:
 	// Encontrar Intersecao
-	movl	number_of_elements_A, %eax
-	movl	number_of_elements_B, %ebx
-	cmpl	$0, %eax
-	je		_empty_set_error
-	cmpl	$0, %ebx
-	je		_empty_set_error
+	call	_is_empty_error
 
 
 _find_difference:
 	// Encontrar a Diferenca
-	movl	number_of_elements_A, %eax
-	movl	number_of_elements_B, %ebx
-	cmpl	$0, %eax
-	je		_empty_set_error
-	cmpl	$0, %ebx
-	je		_empty_set_error
+	call	_is_empty_error
 
 
 _find_complement:
 	// Encontrar o Complementar
-	movl	number_of_elements_A, %eax
-	movl	number_of_elements_B, %ebx
-	cmpl	$0, %eax
-	je		_empty_set_error
-	cmpl	$0, %ebx
-	je		_empty_set_error
-
+	call	_is_empty_error
 
 _end:
 
 	//	se foi alocado valores nos conjuntos, desalocar
 	movl	$0,	%eax
+
 	cmpl	number_of_elements_A, %eax
 	jne		_free_set_A
-		_call_free_A_ret:
+		_free_set_A_ret:
+
 	cmpl	number_of_elements_B, %eax
 	jne		_free_set_B
-		_call_free_B_ret:
+		_free_set_B_ret:
+
 	pushl	$0
 	call	exit
 
-_free_set_A:
-	pushl	set_A
-	call	free
-	addl	$4, %esp
-	jmp _call_free_A_ret
-	
-_free_set_B:
-	pushl	set_B
-	call	free
-	addl	$4, %esp
-	jmp _call_free_B_ret
-	
-_empty_set_error:
-
-	// Exibe a mensagem de erro para o caso do conjunto estar vazio
-	pushl	$empty_set_error_msg	
-	call	printf
-
-	// Retorna ao menu principal
-	jmp		_main_menu
+	_free_set_A:
+		pushl	set_A
+		call	free
+		addl	$4, %esp
+		jmp _free_set_A_ret
+		
+	_free_set_B:
+		pushl	set_B
+		call	free
+		addl	$4, %esp
+		jmp _free_set_B_ret
+		
+###############################################################################################
 
 _print_values_A:
 	// Mostra os valores do conjunto A
@@ -536,3 +512,27 @@ ret
 		call	free
 
 		jmp		_free_set_before_read_ret
+
+_is_empty_error:
+	movl	number_of_elements_A, %eax
+	movl	number_of_elements_B, %ebx
+	cmpl	$0, %eax
+	je		_empty_set_error
+	cmpl	$0, %ebx
+	je		_empty_set_error
+
+ret
+
+	_empty_set_error:
+
+		// Exibe a mensagem de erro para o caso do conjunto estar vazio
+		pushl	$empty_set_error_msg	
+		call	printf
+		
+		// Remove o endereço de retorno do call e retorna ao menu principal
+		addl	$4, %esp
+		jmp		_main_menu
+
+
+
+
