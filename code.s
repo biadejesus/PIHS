@@ -359,10 +359,10 @@ _get_values_for_set:
 		popl	%ecx
 		popl	%ebx
 
-		// se houve repetição tenta novamente sem incrementar o contador
+		// se houve repetição pritna erro na tela e tenta novamente sem incrementar o contador
 		movl	flag,	%eax
 		cmpl	$1,	%eax
-		je	_get_values_loop
+		je		_print_repeat_error
 
 		// se nao houve repetição segue o loop
 		movl	element, %eax
@@ -374,6 +374,13 @@ _get_values_for_set:
 	loop	_get_values_loop
 			
 ret
+
+_print_repeat_error:
+	pushl	$repeat_value_msg
+	call	printf
+	addl	$4, %esp
+	jmp		_get_values_loop
+
 
 _check_for_repeat:
 	// funcao para checar se o elemento eh repetido no conjunto
@@ -415,12 +422,8 @@ _check_for_repeat:
 ret
 
 	_element_is_repeating:
-		// levanta a flag, printa a mensagem de erro na tela e retorna
-
+		// levanta a flag e retorna
 		movl	$1,	flag
-		pushl	$repeat_value_msg
-		call	printf
-		addl	$4, %esp
 		
 		// remove os backups
 		addl	$12, %esp
@@ -428,13 +431,6 @@ ret
 		// retorna para a execução
 		jmp		_check_for_repeat_end
 
-_repeated_value_error:
-	// levanta a flag, printa a mensagem de erro na tela e retorna
-	pushl	$repeat_value_msg
-	call	printf
-	addl	$4, %esp
-	movl	$1,	flag
-ret
 
 _alloc_set:
 
