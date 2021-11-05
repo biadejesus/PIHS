@@ -20,7 +20,7 @@
 	read_values_msg:		.asciz	"\nLeitura dos Conjuntos\n\n"
 	read_values_menu:		.asciz	"\n\t1. Inserir Conjunto A\n\t2. Inserir Conjunto B\n\t3. Sair\n\n"
 
-	ask_number_of_values:	.asciz	"Digite o numero de elementos do conjunto (max. %d): "
+	ask_number_of_values:	.asciz	"Digite o numero de elementos do conjunto: "
 	ask_values:				.asciz	"Digite o elemento %d do conjunto: "
 
 	print_values_A:			.asciz	"Valores do Conjunto A: "
@@ -28,10 +28,9 @@
 	print_value:			.asciz	"%d "
 	skip_line:				.asciz	"\n"
 
-	set_A:		.space	80
-	set_B:		.space	80
+	set_A:		.space	4
+	set_B:		.space	4
 	
-	max_number_of_elements:		.int	20
 	number_of_elements_A:		.int	0
 	number_of_elements_B:		.int	0
 
@@ -73,33 +72,33 @@ _get_main_option_loop:
 	
 	// Leitura dos Conjuntos
 	cmpl	$1, %eax	
-	je	_read_sets
+	je		_read_sets
 
 	// Encontrar Uniao
 	cmpl	$2, %eax	
-	je	_find_union
+	je		_find_union
 
 	// Encontrar Intersecao
 	cmpl	$3, %eax	
-	je	_find_intersection
+	je		_find_intersection
 
 	// Encontrar a Diferenca
 	cmpl	$4, %eax	
-	je	_find_difference
+	je		_find_difference
 
 	// Encontrar o Complementar
 	cmpl	$5, %eax	
-	je	_find_complement
+	je		_find_complement
 
 	// Sair
 	cmpl	$6, %eax	
-	je	_end
+	je		_end
 
 	pushl	$invalid_option_msg
 	call	printf
 	addl	$4, %esp
 
-	jmp _get_main_option_loop
+	jmp		_get_main_option_loop
 
 _read_sets:
 	/*	
@@ -139,28 +138,33 @@ _read_sets:
 		
 		// Leitura dos Conjunto A
 		cmpl	$1, %eax	
-		je	_read_set_A
+		je		_read_set_A
 
 		// Leitura dos Conjunto B
 		cmpl	$2, %eax	
-		je	_read_set_B
+		je		_read_set_B
 
 		// Voltar ao menu principal
 		cmpl	$3, %eax	
-		je	_main_menu
+		je		_main_menu
 		
 		// Emite opcao invalida
 		pushl	$invalid_option_msg
 		call	printf
 		addl	$4, %esp
 
-		jmp _get_read_option_loop
+		jmp 	_get_read_option_loop
 
 	_read_set_A:
 		// Leitura do conjunto A
 
+		// se ja estiver alocado, desaloca e continua
+		movl	$0,	%eax
+		cmpl	number_of_elements_A,	%eax
+		jne		_free_A_before_read
+			_free_A_before_read_ret:
+
 		// Pede o numero de elementos do conjunto A
-		pushl	max_number_of_elements
 		pushl	$ask_number_of_values
 		call	printf
 		addl	$4, %esp
@@ -172,16 +176,17 @@ _read_sets:
 
 		// Ve se o numero de elementos eh um valor invalido
 		movl	number_of_elements_A, %eax
-		cmpl	max_number_of_elements,	%eax
-		jg	_invalid_value_A
 		cmpl	$0,	%eax
-		jl	_invalid_value_A
+		jle		_invalid_value_A
+
+		// Aloca o espaco para o conjunto A
+		call	_alloc_set_A
 
 		// Chama funcao que le os valores para o conjunto A
-		call _get_values_for_A
+		call 	_get_values_for_A
 
 
-		jmp	_read_sets
+		jmp		_read_sets
 
 		_invalid_value_A:
 			// Se o valor for invalido, exibe a mensagem e tenta novamente
@@ -189,14 +194,25 @@ _read_sets:
 			call	printf
 			addl	$4, %esp
 			
-			jmp	_read_set_A
+			jmp		_read_set_A
 
+		_free_A_before_read:
+			// desaloca A e retorna
+			pushl	set_A
+			call	free
+
+			jmp		_free_A_before_read_ret
 
 	_read_set_B:
 		// Leitura do conjunto B
 
+		// se ja estiver alocado, desaloca e continua
+		movl	$0,	%eax
+		cmpl	number_of_elements_B,	%eax
+		jne		_free_B_before_read
+			_free_B_before_read_ret:
+
 		// Pede o numero de elementos do conjunto B
-		pushl	max_number_of_elements
 		pushl	$ask_number_of_values
 		call	printf
 		addl	$4, %esp
@@ -208,16 +224,17 @@ _read_sets:
 
 		// Ve se o numero de elementos eh um valor invalido
 		movl	number_of_elements_B, %eax
-		cmpl	max_number_of_elements,	%eax
-		jg	_invalid_value_B
 		cmpl	$0,	%eax
-		jl	_invalid_value_B
+		jle		_invalid_value_B
+
+		// Aloca o espaco para o conjunto B
+		call	_alloc_set_B
 
 		// Chama funcao que le os valores para o conjunto B
-		call _get_values_for_B
+		call 	_get_values_for_B
 
 
-		jmp	_read_sets
+		jmp		_read_sets
 
 		_invalid_value_B:
 			// Se o valor for invalido, exibe a mensagem e tenta novamente
@@ -225,8 +242,14 @@ _read_sets:
 			call	printf
 			addl	$4, %esp
 			
-			jmp	_read_set_B
+			jmp		_read_set_B
 
+		_free_B_before_read:
+			// desaloca B e retorna
+			pushl	set_B
+			call	free
+
+			jmp		_free_B_before_read_ret
 _find_union:
 	// Encontrar Uniao
 	movl	number_of_elements_A, %eax
@@ -268,9 +291,26 @@ _find_complement:
 
 _end:
 
+	//	se foi alocado valores nos conjuntos, desalocar
+	movl	$0,	%eax
+	cmpl	number_of_elements_A, %eax
+	// jne		_call_free_A
+		_call_free_A_ret:
+	cmpl	number_of_elements_B, %eax
+	// jne		_call_free_B
+		_call_free_B_ret:
+
 	pushl	$0
 	call	exit
 
+_call_free_A:
+	call _free_set_A
+	jmp _call_free_A_ret
+	
+_call_free_B:
+	call _free_set_B
+	jmp _call_free_B_ret
+	
 _empty_set_error:
 
 	// Exibe a mensagem de erro para o caso do conjunto estar vazio
@@ -278,7 +318,7 @@ _empty_set_error:
 	call	printf
 
 	// Retorna ao menu principal
-	jmp	_main_menu
+	jmp		_main_menu
 
 _print_values_A:
 	// Mostra os valores do conjunto A
@@ -293,7 +333,7 @@ _print_values_A:
 
 	// Se esiver vazio, pula para o fim da funcao
 	cmpl	$0,	%ecx
-	je	_print_values_A_end
+	je		_print_values_A_end
 
 	_print_values_A_loop:
 
@@ -342,7 +382,7 @@ _print_values_B:
 
 	// Se esiver vazio, pula para o fim da funcao
 	cmpl	$0,	%ecx
-	je	_print_values_B_end
+	je		_print_values_B_end
 
 	_print_values_B_loop:
 		// pushl pra backup
@@ -416,7 +456,7 @@ _get_values_for_A:
 		// se houve repetição tenta novamente sem incrementar o contador
 		movl	flag,	%eax
 		cmpl	$1,	%eax
-		je	_read_set_A_loop
+		je		_read_set_A_loop
 
 		// se nao houve repetição segue o loop
 		movl	element, %eax
@@ -488,7 +528,7 @@ _check_for_repeat_A:
 
 	// se for o primeiro elemento não precisa checar, pula para o fim
 	cmpl	$0, %ecx
-	jle	_check_for_repeat_A_end
+	jle		_check_for_repeat_A_end
 
 	_check_for_repeat_A_loop:
 
@@ -500,7 +540,7 @@ _check_for_repeat_A:
 		// se o elemento for repetido, pula para a funcao
 		movl	(%edi), %eax
 		cmpl	element, %eax
-		je	_element_in_A_is_repeated
+		je		_element_in_A_is_repeated
 		_element_in_A_is_repeated_ret:
 			// label de retorno
 		
@@ -514,16 +554,15 @@ _check_for_repeat_A:
 
 	loop	_check_for_repeat_A_loop
 
-_check_for_repeat_A_end:
+	_check_for_repeat_A_end:
 	// final da função, retorna
 ret
 
-_element_in_A_is_repeated:
-	//	chama a função para printar a mensagem de erro na tela e levantar flag
-	movl	$0,	flag
-	call _repeat_value_error
-	// retorna para a execução
-	jmp	_element_in_A_is_repeated_ret
+	_element_in_A_is_repeated:
+		//	chama a função para printar a mensagem de erro na tela e levantar flag
+		call	_repeat_value_error
+		// retorna para a execução
+		jmp		_element_in_A_is_repeated_ret
 
 _check_for_repeat_B:
 	// funcao para checar se o elemento eh repetido em A
@@ -534,7 +573,7 @@ _check_for_repeat_B:
 
 	// se for o primeiro elemento não precisa checar, pula para o fim
 	cmpl	$0, %ecx
-	jle	_check_for_repeat_B_end
+	jle		_check_for_repeat_B_end
 
 	_check_for_repeat_B_loop:
 
@@ -546,7 +585,7 @@ _check_for_repeat_B:
 		// se o elemento for repetido, pula para a funcao
 		movl	(%edi), %eax
 		cmpl	element, %eax
-		je	_is_element_B_repeat
+		je		_is_element_B_repeat
 		_is_element_B_repeat_ret:
 			// label de retorno
 		// restaurando backup
@@ -560,23 +599,56 @@ _check_for_repeat_B:
 	loop	_check_for_repeat_B_loop
 
 
-_check_for_repeat_B_end:
-	// final da função, retorna
+	_check_for_repeat_B_end:
+		// final da função, retorna
 ret
 
-_is_element_B_repeat:
-	//	chama a função para printar a mensagem de erro na tela e levantar flag
-	movl	$0,	flag
-	call _repeat_value_error
-	// retorna para a execução
-	jmp	_is_element_B_repeat_ret
+	_is_element_B_repeat:
+		//	chama a função para printar a mensagem de erro na tela e levantar flag
+		call	_repeat_value_error
+		// retorna para a execução
+		jmp		_is_element_B_repeat_ret
 
 _repeat_value_error:
-
 	// levanta a flag, printa a mensagem de erro na tela e retorna
 	pushl	$repeat_value_msg
 	call	printf
 	addl	$4, %esp
 	movl	$1,	flag
+ret
 
+_alloc_set_A:
+	// aloca o set_A
+	movl	$4, %eax
+	mull	number_of_elements_A
+	pushl	%eax
+	call	malloc
+	movl	%eax, set_A
+	addl	$4, %esp
+
+ret
+
+_alloc_set_B:
+	// aloca o set_B
+	movl	$4, %eax
+	mull	number_of_elements_B
+	pushl	%eax
+	call	malloc
+	movl	%eax, set_B
+	addl	$4, %esp
+ret
+
+
+_free_set_A:
+	// desaloca o set_A
+	pushl	set_A
+	call	free
+	addl	$4, %esp
+ret
+
+_free_set_B:
+	// desaloca o set_B
+	pushl	set_B
+	call	free
+	addl	$4, %esp
 ret
