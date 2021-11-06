@@ -3,7 +3,7 @@
 	(X) 2 - Encontrar União
 	(X) 3 - Encontrar Intersecção
 	(X) 4 - Encontrar a Diferença
-	( ) 5 - Encontrar o Complementar
+	(X) 5 - Encontrar o Complementar
 */
 
 .section .data
@@ -27,6 +27,9 @@
 	diff_msg:				.asciz	"\nEncontrar a Diferenca dos Conjuntos\n\n"
 	diff_A_B_msg:			.asciz	"Diferenca A - B: "
 	diff_B_A_msg:			.asciz	"Diferenca B - A: "
+
+	A_is_in_B_msg:			.asciz	"A eh subconjunto de B\n"
+	B_is_in_A_msg:			.asciz	"B eh subconjunto de A\n"
 
 	ask_number_of_values:	.asciz	"Digite o numero de elementos do conjunto: "
 	ask_values:				.asciz	"Digite o elemento %d do conjunto: "
@@ -64,12 +67,12 @@ _start:
 	// Printa a mensagem de abertura e o menu
 	pushl	$opening_msg	
 	call	printf
+	addl	$4, %esp
 
 _main_menu:
 	pushl	$main_menu
 	call	printf
-
-	addl	$8, %esp
+	addl	$4, %esp
 
 _get_main_option_loop:
 
@@ -202,6 +205,12 @@ _find_union:
 	call	_is_empty_error
 	call	_make_set_C_free
 
+	pushl	$union_msg
+	call	printf
+	addl	$4, %esp
+	call	_print_values_A
+	call	_print_values_B
+
 	movl	number_of_elements_A,	%eax
 	addl	number_of_elements_B,	%eax
 	movl	$4,	%ebx
@@ -217,11 +226,6 @@ _find_union:
 	movl	set_B,	%edi   
 	call	_fill_union
 
-	pushl	$union_msg
-	call	printf
-	addl	$4, %esp
-	call	_print_values_A
-	call	_print_values_B
 	call	_print_values_C
 	jmp		_main_menu
 
@@ -230,6 +234,12 @@ _find_intersection:
 	// Encontrar Intersecao
 	call	_is_empty_error
 	call	_make_set_C_free
+
+	pushl	$intersect_msg
+	call	printf
+	addl	$4, %esp
+	call	_print_values_A
+	call	_print_values_B
 
 	movl	number_of_elements_A,	%eax
 	addl	number_of_elements_B,	%eax
@@ -242,11 +252,6 @@ _find_intersection:
 	movl	set_A,	%edi   
 	call	_fill_intersect
 
-	pushl	$intersect_msg
-	call	printf
-	addl	$4, %esp
-	call	_print_values_A
-	call	_print_values_B
 	call	_print_values_C
 	jmp		_main_menu
 
@@ -311,14 +316,47 @@ _find_complement:
 	call	_is_empty_error
 	call	_make_set_C_free
 
-
 	pushl	$comp_msg
 	call	printf
 	addl	$4, %esp
 	call	_print_values_A
 	call	_print_values_B
+
+	//	verifica se um conjunto é subconjunto do outro
+	//	retorno é pelo %eax
+	call	_fill_comp
+
+	//	se A for subconjunto de B retorna 1
+	cmpl	$1,	%eax
+	je		_find_comp_A_B
+
+	//	se B for subconjunto de A retorna 2
+	cmpl	$2,	%eax
+	je		_find_comp_B_A
+
+		_find_comp_ret:
+	//	se nenhum for subconjunto retorna 0, ou seja, continua normalmente
+
 	call	_print_values_C
 	jmp		_main_menu
+
+	_find_comp_A_B:
+
+		pushl	$A_is_in_B_msg
+		call	printf
+		addl	$4,	%esp
+
+		jmp		_find_comp_ret
+
+	_find_comp_B_A:
+
+		pushl	$B_is_in_A_msg
+		call	printf
+		addl	$4,	%esp
+
+		jmp		_find_comp_ret
+
+
 
 _end:
 
@@ -844,8 +882,121 @@ ret
 		call	_add_to_C
 		jmp	_add_to_diff_ret
 
+_fill_comp:
+	//	verifica se um coonjunto é sub conjunto do outro
+	//	se A for subconjunto de B retorna 1
+	//	se B for subconjunto de A retorna 2
+	//	se nenhum for subconjunto retorna 0
+	//	retorno é pelo %eax
+
+	movl	number_of_elements_A,	%eax
+	cmpl	number_of_elements_B,	%eax
+	jl		_is_A_subset_B
+	cmpl	number_of_elements_B,	%eax
+	jg		_is_B_subset_A
+
+	movl	$0,	%eax
+	_fill_comp_end:
+ret
+
+	_is_A_subset_B:
+		call	_make_set_C_free
+
+		movl	number_of_elements_A,	%eax
+		addl	number_of_elements_B,	%eax
+		movl	$4,	%ebx
+		mull	%ebx
+		call	_alloc_set
+		movl	%eax,	set_C
+
+		movl	number_of_elements_B,	%ecx
+		movl	%ecx,	number_of_elements_aux
+		movl	set_B,	%edi 
+		movl	%edi,	set_ptr
+
+		movl	number_of_elements_A,	%ecx
+		movl	set_A,	%edi 
+		call	_fill_diff
+
+		movl	number_of_elements_C,	%eax
+		cmpl	$0,	%eax
+		je		_A_is_in_B
+
+		movl	$0,	%eax
+		call	_make_set_C_free
+		ret
+
+	_is_B_subset_A:
+		call	_make_set_C_free
+	
+		movl	number_of_elements_A,	%eax
+		addl	number_of_elements_B,	%eax
+		movl	$4,	%ebx
+		mull	%ebx
+		call	_alloc_set
+		movl	%eax,	set_C
+
+		movl	number_of_elements_A,	%ecx
+		movl	%ecx,	number_of_elements_aux
+		movl	set_A,	%edi 
+		movl	%edi,	set_ptr
+
+		movl	number_of_elements_B,	%ecx
+		movl	set_B,	%edi 
+		call	_fill_diff
+
+		movl	number_of_elements_C,	%eax
+		cmpl	$0,	%eax
+		je		_B_is_in_A
+		
+		movl	$0,	%eax
+		call	_make_set_C_free
+		ret
+
+	_A_is_in_B:
+		call	_make_set_C_free
+
+		movl	number_of_elements_A,	%eax
+		addl	number_of_elements_B,	%eax
+		movl	$4,	%ebx
+		mull	%ebx
+		call	_alloc_set
+		movl	%eax,	set_C
+
+		movl	number_of_elements_A,	%ecx
+		movl	%ecx,	number_of_elements_aux
+		movl	set_A,	%edi 
+		movl	%edi,	set_ptr
+
+		movl	number_of_elements_B,	%ecx
+		movl	set_B,	%edi 
+		call	_fill_diff
 
 
+		movl	$1,	%eax
+		ret
+
+	_B_is_in_A:
+		call	_make_set_C_free
+
+		movl	number_of_elements_A,	%eax
+		addl	number_of_elements_B,	%eax
+		movl	$4,	%ebx
+		mull	%ebx
+		call	_alloc_set
+		movl	%eax,	set_C
+
+		movl	number_of_elements_B,	%ecx
+		movl	%ecx,	number_of_elements_aux
+		movl	set_B,	%edi 
+		movl	%edi,	set_ptr
+
+		movl	number_of_elements_A,	%ecx
+		movl	set_A,	%edi 
+		call	_fill_diff
+
+		movl	$2,	%eax
+		ret
 
 _add_to_C:
 		movl	number_of_elements_C,	%eax
